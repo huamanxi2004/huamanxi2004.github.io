@@ -232,7 +232,7 @@
             <video id="video" autoplay playsinline></video>
             <canvas id="canvas"></canvas>
         </div>
-        <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/未标题-6.png" alt="background" class="background">
+        <img src="图片素材/未标题-6.png" alt="background" class="background">
         <div class="hint">等待启动...</div>
     </div>
     <button class="start-button">点击启动</button>
@@ -263,7 +263,7 @@
         let maskImage = new Image();
         let crownImage = new Image();
         let filterType = null;
-        let backgroundMusic = new Audio('/Users/pyq/Desktop/UI大作业（测试）/音频素材/all.mp3');
+        let backgroundMusic = new Audio('音频素材/all.mp3');
 
         // 设置画布尺寸
         canvas.width = 640;
@@ -325,8 +325,8 @@
 
         // 加载装饰图片
         function loadDecorations() {
-            maskImage.src = '/Users/pyq/Desktop/UI大作业（测试）/图片素材/魅影面具.jpg';
-            crownImage.src = '/Users/pyq/Desktop/UI大作业（测试）/图片素材/小c.jpg';
+            maskImage.src = '图片素材/魅影面具.jpg';
+            crownImage.src = '图片素材/小c.jpg';
             
             maskImage.onerror = function() {
                 console.error('面具图片加载失败');
