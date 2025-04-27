@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大门开启</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #000;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .scene-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: url('/Users/pyq/Desktop/UI大作业（测试）/图片素材/船1.jpg') center center/cover no-repeat;
+            transition: opacity 2s ease-in-out;
+        }
+
+        .lake-scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 2s ease-in-out;
+        }
+
+        .lake-scene.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .lake-scene .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        .lake-scene .fog {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 3;
+            opacity: 0;
+            animation: fogReveal 3s ease-in-out forwards;
+        }
+
+        @keyframes fogReveal {
+            0% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 0.7;
+            }
+        }
+
+        .fade-out {
+            opacity: 0;
+        }
+
+        #boat-wrapper {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: floatUpDown 2s ease-in-out infinite;
+        }
+
+        @keyframes floatUpDown {
+            0%, 100% {
+                transform: translate(-50%, -50%);
+            }
+            50% {
+                transform: translate(-50%, calc(-50% - 15px));
+            }
+        }
+
+        .boat {
+            position: relative;
+            width: 75vw;
+            height: auto;
+            background: none;
+            z-index: 1;
+            transition: transform 0.2s ease-out;
+        }
+
+        .boat img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .door {
+            position: absolute;
+            top: 0;
+            width: 60%;
+            height: 100%;
+            background-position: center;
+            background-size: contain;
+            background-repeat: no-repeat;
+            transition: transform 3s ease-in-out;
+            z-index: 2;
+        }
+
+        .door.left {
+            left: -5%;
+            background-image: url('/Users/pyq/Desktop/UI大作业（测试）/图片素材/左门.jpg');
+            transform-origin: left;
+        }
+
+        .door.right {
+            right: -5%;
+            background-image: url('/Users/pyq/Desktop/UI大作业（测试）/图片素材/右门.jpg');
+            transform-origin: right;
+        }
+
+        .door.left.open {
+            transform: translateX(-30%);
+        }
+
+        .door.right.open {
+            transform: translateX(30%);
+        }
+
+        .open-button {
+            display: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .sing-text {
+            position: fixed;
+            right: 100px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 4;
+        }
+
+        .sing-text.visible {
+            opacity: 1;
+        }
+
+        .transition-door {
+            position: fixed;
+            bottom: -100vh;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: url('/Users/pyq/Desktop/UI大作业（测试）/图片素材/大门.jpg') center center/cover no-repeat;
+            background-color: black;
+            z-index: 9999;
+            transition: transform 4s ease-in-out;
+        }
+
+        .transition-door.slide-up {
+            transform: translateY(-100vh);
+        }
+
+        .transition-door.slide-down {
+            transform: translateY(0);
+        }
+
+        .fade-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.5s ease;
+            z-index: 9999;
+        }
+
+        .fade-overlay.active {
+            opacity: 1;
+        }
+
+        /* 添加第13页样式 */
+        #page-13 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: #000033;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 1s ease-out;
+            cursor: pointer;
+        }
+
+        #page-13.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #page-13 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加第14页样式 */
+        #page-14 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: #000033;
+            z-index: 10001;
+            opacity: 0;
+            transition: opacity 1s ease-out;
+            cursor: pointer;
+        }
+
+        #page-14.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #page-14 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加第15页样式 */
+        #page-15 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: #000033;
+            z-index: 10002;
+            opacity: 0;
+            transition: opacity 1s ease-out;
+            cursor: pointer;
+        }
+
+        #page-15.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #page-15 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加第16-19页样式 */
+        #page-16, #page-17 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: #000033;
+            opacity: 0;
+            transition: opacity 1s ease-out;
+            cursor: pointer;
+        }
+
+        #page-16 { z-index: 10003; }
+        #page-17 { z-index: 10004; }
+
+        #page-16.active,
+        #page-17.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #page-16 img,
+        #page-17 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        @keyframes boatFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        #lake-boat-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            animation: floatUpDown 2s ease-in-out infinite;
+        }
+
+        .lake-scene .boat {
+            position: relative;
+            width: 75vw;
+            height: auto;
+            background: none;
+            z-index: 1;
+            transition: transform 0.2s ease-out;
+        }
+
+        .lake-scene .boat img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+            opacity: 0.8;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: opacity 0.5s;
+            z-index: 4;
+        }
+    </style>
+</head>
+<body>
+    <div class="scene-container">
+        <div id="boat-wrapper">
+            <div class="boat">
+                <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/船.png" alt="boat">
+            </div>
+        </div>
+        <div class="door left"></div>
+        <div class="door right"></div>
+    </div>
+
+    <div class="lake-scene">
+        <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/湖2.jpg" alt="lake" class="background">
+        <div id="lake-boat-wrapper">
+            <div class="boat">
+                <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/船2.jpg" alt="boat">
+            </div>
+        </div>
+        <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/雾.jpg" alt="fog" class="fog">
+    </div>
+
+    <div class="transition-door"></div>
+
+    <!-- 添加第13页容器 -->
+    <div id="page-13">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/13页.png" alt="第13页">
+    </div>
+
+    <!-- 添加第14页容器 -->
+    <div id="page-14">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/14页.png" alt="第14页">
+    </div>
+
+    <!-- 添加第15页容器 -->
+    <div id="page-15">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/15页.png" alt="第15页">
+    </div>
+
+    <!-- 添加第16-17页容器 -->
+    <div id="page-16">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/16页.png" alt="第16页">
+    </div>
+    <div id="page-17">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/17页.png" alt="第17页">
+    </div>
+
+    <audio id="bgMusic" preload="auto">
+        <source src="/Users/pyq/Desktop/UI大作业（测试）/音频素材/湖.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio id="sing1" preload="auto">
+        <source src="/Users/pyq/Desktop/UI大作业（测试）/音频素材/sing1.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="sing2" preload="auto">
+        <source src="/Users/pyq/Desktop/UI大作业（测试）/音频素材/sing2.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="sing3" preload="auto">
+        <source src="/Users/pyq/Desktop/UI大作业（测试）/音频素材/sing3.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="sing4" preload="auto">
+        <source src="/Users/pyq/Desktop/UI大作业（测试）/音频素材/sing4.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="hint">请允许访问摄像头，左右移动头部来控制船的移动</div>
+    <div class="sing-text">Sing !</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script>
+        const leftDoor = document.querySelector('.door.left');
+        const rightDoor = document.querySelector('.door.right');
+        const openButton = document.querySelector('.open-button');
+        const bgMusic = document.getElementById('bgMusic');
+        const sing1 = document.getElementById('sing1');
+        const sing2 = document.getElementById('sing2');
+        const sing3 = document.getElementById('sing3');
+        const sing4 = document.getElementById('sing4');
+        const boat = document.querySelector('.boat');
+        const hint = document.querySelector('.hint');
+        let isOpening = false;
+        let faceTrackingStarted = false;
+        let handTrackingStarted = false;
+        let currentSingIndex = 0;
+        let lastHandRaiseTime = 0;
+        let isAudioPlaying = false;
+
+        // 初始化 MediaPipe Hands
+        const hands = new Hands({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+            }
+        });
+
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        // 初始化音频
+        function initAudio() {
+            bgMusic.volume = 1.0;
+            [sing1, sing2, sing3, sing4].forEach(audio => {
+                audio.volume = 1.0;
+                audio.addEventListener('ended', () => {
+                    isAudioPlaying = false;
+                    // 当音频播放结束时隐藏文字
+                    document.querySelector('.sing-text').classList.remove('visible');
+                });
+            });
+            
+            bgMusic.addEventListener('timeupdate', () => {
+                if (bgMusic.duration - bgMusic.currentTime < 3) {
+                    const remainingTime = bgMusic.duration - bgMusic.currentTime;
+                    bgMusic.volume = Math.max(0, remainingTime / 3);
+                }
+            });
+
+            bgMusic.play().catch(error => {
+                console.log('等待用户交互以播放音频');
+            });
+        }
+
+        // 检测举手动作
+        function checkHandRaise(landmarks) {
+            const currentTime = Date.now();
+            if (currentTime - lastHandRaiseTime < 2000 || isAudioPlaying) return;
+
+            for (const hand of landmarks) {
+                const wrist = hand[0];
+                const shoulder = hand[11]; // 使用手部关键点作为参考
+                
+                if (wrist.y < shoulder.y) { // 手腕高于肩膀
+                    lastHandRaiseTime = currentTime;
+                    playNextSing();
+                    return;
+                }
+            }
+        }
+
+        // 播放下一段音频
+        function playNextSing() {
+            if (isAudioPlaying) return;
+            
+            const audioFiles = [sing1, sing2, sing3, sing4];
+            const singTexts = ['Sing !', 'Sing !!', 'Sing !!!', 'Sing for me !!!'];
+            
+            // 如果已经播放完所有音频，显示第13页
+            if (currentSingIndex >= audioFiles.length) {
+                const page13 = document.getElementById('page-13');
+                const lakeScene = document.querySelector('.lake-scene');
+                
+                // 淡出当前场景
+                lakeScene.style.transition = 'opacity 1s ease-out';
+                lakeScene.style.opacity = '0';
+                
+                // 显示第13页
+                setTimeout(() => {
+                    page13.style.display = 'flex';
+                    requestAnimationFrame(() => {
+                        page13.classList.add('active');
+                    });
+                }, 1000);
+                
+                return;
+            }
+            
+            isAudioPlaying = true;
+            const singText = document.querySelector('.sing-text');
+            
+            // 如果是第一段音频，停止背景音乐
+            if (currentSingIndex === 0) {
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
+            }
+            
+            // 设置并显示对应的文字
+            singText.textContent = singTexts[currentSingIndex];
+            singText.classList.add('visible');
+            
+            audioFiles[currentSingIndex].play()
+                .then(() => {
+                    // 如果是最后一个音频，在播放完成后自动切换场景
+                    if (currentSingIndex === audioFiles.length - 1) {
+                        audioFiles[currentSingIndex].addEventListener('ended', () => {
+                            window.parent.postMessage('nextScene', '*');
+                        }, { once: true });
+                    }
+                })
+                .catch(console.error);
+            currentSingIndex++;
+        }
+
+        // 修改现有的 startFaceTracking 函数
+        async function startFaceTracking() {
+            try {
+                faceTrackingStarted = true;
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 640,
+                        height: 480,
+                        facingMode: 'user'
+                    } 
+                });
+
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.style.position = 'absolute';
+                video.style.opacity = '0';
+                video.style.pointerEvents = 'none';
+                document.body.appendChild(video);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 640;
+                canvas.height = 480;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                
+                video.onloadedmetadata = () => {
+                    video.play();
+                    trackFace(video, canvas, ctx);
+                    hint.textContent = '左右移动头部控制船';
+                    setTimeout(() => {
+                        hint.style.opacity = '0';
+                    }, 5000);
+                };
+
+                console.log('摄像头启动成功');
+            } catch (err) {
+                console.error('无法访问摄像头:', err);
+                hint.textContent = '无法访问摄像头，请确保允许摄像头访问并刷新页面';
+            }
+        }
+
+        // 启动手势追踪
+        async function startHandTracking(video, canvas, ctx) {
+            if (handTrackingStarted) return;
+            handTrackingStarted = true;
+
+            hands.onResults((results) => {
+                if (results.multiHandLandmarks) {
+                    checkHandRaise(results.multiHandLandmarks);
+                }
+            });
+
+            async function detectHands() {
+                if (!handTrackingStarted) return;
+                
+                ctx.drawImage(video, 0, 0);
+                await hands.send({ image: canvas });
+                requestAnimationFrame(detectHands);
+            }
+            
+            detectHands();
+        }
+
+        // 追踪人脸
+        async function trackFace(video, canvas, ctx) {
+            if ('FaceDetector' in window) {
+                const faceDetector = new FaceDetector();
+                
+                async function detectFace() {
+                    if (!faceTrackingStarted) return;
+                    
+                    ctx.drawImage(video, 0, 0);
+                    try {
+                        const faces = await faceDetector.detect(canvas);
+                        if (faces.length > 0) {
+                            const face = faces[0];
+                            const faceCenter = face.boundingBox.x + (face.boundingBox.width / 2);
+                            updateBoatPosition(faceCenter, canvas.width);
+                        }
+                    } catch (err) {
+                        console.error('人脸检测错误:', err);
+                    }
+                    requestAnimationFrame(detectFace);
+                }
+                detectFace();
+            } else {
+                // 如果浏览器不支持 FaceDetector，使用简单的移动检测
+                function detectMovement() {
+                    if (!faceTrackingStarted) return;
+                    
+                    ctx.drawImage(video, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const brightness = calculateAveragePosition(imageData.data);
+                    updateBoatPosition(brightness * canvas.width, canvas.width);
+                    requestAnimationFrame(detectMovement);
+                }
+                detectMovement();
+            }
+        }
+
+        // 计算画面中移动物体的平均位置
+        function calculateAveragePosition(pixels) {
+            let totalBrightness = 0;
+            let totalPosition = 0;
+            
+            for (let i = 0; i < pixels.length; i += 4) {
+                const brightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+                const x = (i / 4) % 640;
+                totalBrightness += brightness;
+                totalPosition += x * brightness;
+            }
+            
+            return totalPosition / totalBrightness / 640;
+        }
+
+        // 更新船的位置
+        function updateBoatPosition(position, width) {
+            const screenCenter = width / 2;
+            const offset = (position - screenCenter) / screenCenter;
+            
+            const maxMove = 120;
+            const movePercent = Math.max(-maxMove, Math.min(maxMove, offset * maxMove * 1.5));
+            
+            boat.style.transform = `translateX(${movePercent}vw)`;
+        }
+
+        // 修改开门动画函数
+        function openDoors() {
+            if (isOpening) return;
+            isOpening = true;
+            
+            bgMusic.play().catch(console.error);
+            leftDoor.classList.add('open');
+            rightDoor.classList.add('open');
+
+            // 门打开后启动人脸追踪
+            setTimeout(() => {
+                if (!faceTrackingStarted) {
+                    hint.textContent = '请允许访问摄像头，左右移动头部来控制船的移动';
+                    startFaceTracking();
+                }
+            }, 3000);
+        }
+
+        // 修改转场函数
+        function triggerTransition() {
+            const transitionDoor = document.querySelector('.transition-door');
+            const lakeScene = document.querySelector('.lake-scene');
+            const sceneContainer = document.querySelector('.scene-container');
+            
+            // 大门向上滑动
+            transitionDoor.classList.add('slide-up');
+            
+            // 等待4秒后开始向下滑动（此时大门完全覆盖页面）
+            setTimeout(() => {
+                // 在大门完全覆盖页面时切换场景
+                sceneContainer.style.opacity = '0';
+                lakeScene.classList.add('visible');
+                
+                // 等待场景切换的渐变完成后，开始大门下降
+                setTimeout(() => {
+                    transitionDoor.classList.add('slide-down');
+                    
+                    // 在第二个场景中启动手势追踪
+                    if (!handTrackingStarted) {
+                        hint.textContent = '举手触发小C唱歌（四次），或点击跳过';
+                        hint.style.opacity = '1';
+                        
+                        // 创建视频元素和画布
+                        const video = document.createElement('video');
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 640;
+                        canvas.height = 480;
+                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                        
+                        // 获取摄像头访问权限
+                        navigator.mediaDevices.getUserMedia({ 
+                            video: { 
+                                width: 640,
+                                height: 480,
+                                facingMode: 'user'
+                            } 
+                        }).then(stream => {
+                            video.srcObject = stream;
+                            video.style.position = 'absolute';
+                            video.style.opacity = '0';
+                            video.style.pointerEvents = 'none';
+                            document.body.appendChild(video);
+                            
+                            video.onloadedmetadata = () => {
+                                video.play();
+                                startHandTracking(video, canvas, ctx);
+                            };
+                        }).catch(err => {
+                            console.error('无法访问摄像头:', err);
+                            hint.textContent = '无法访问摄像头，点击屏幕跳过';
+                        });
+                    }
+                }, 2000);
+                
+            }, 4000);
+        }
+
+        // 点击事件监听
+        document.addEventListener('click', () => {
+            if (!isOpening) {
+                openDoors();
+            } else if (faceTrackingStarted) {
+                if (handTrackingStarted) {
+                    // 在第二个场景中，点击时播放下一个音频
+                    playNextSing();
+                } else {
+                    triggerTransition();
+                }
+            }
+        });
+
+        // 修改第13页点击事件处理
+        document.getElementById('page-13').addEventListener('click', function() {
+            // 停止所有摄像头和追踪
+            if (faceTrackingStarted) {
+                faceTrackingStarted = false;
+                const videoElements = document.querySelectorAll('video');
+                videoElements.forEach(video => {
+                    if (video.srcObject) {
+                        const tracks = video.srcObject.getTracks();
+                        tracks.forEach(track => track.stop());
+                        video.srcObject = null;
+                    }
+                    video.remove();
+                });
+            }
+            if (handTrackingStarted) {
+                handTrackingStarted = false;
+            }
+
+            const page13 = document.getElementById('page-13');
+            const page14 = document.getElementById('page-14');
+            
+            page13.style.opacity = '0';
+            setTimeout(() => {
+                page14.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    page14.classList.add('active');
+                });
+            }, 1000);
+        });
+
+        // 修改第14-15页的点击事件处理
+        document.getElementById('page-14').addEventListener('click', function() {
+            const page14 = document.getElementById('page-14');
+            const page15 = document.getElementById('page-15');
+            
+            page14.style.opacity = '0';
+            setTimeout(() => {
+                page15.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    page15.classList.add('active');
+                });
+            }, 1000);
+        });
+
+        document.getElementById('page-15').addEventListener('click', function() {
+            const page15 = document.getElementById('page-15');
+            const page16 = document.getElementById('page-16');
+            
+            page15.style.opacity = '0';
+            setTimeout(() => {
+                page16.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    page16.classList.add('active');
+                });
+            }, 1000);
+        });
+
+        document.getElementById('page-16').addEventListener('click', function() {
+            const page16 = document.getElementById('page-16');
+            const page17 = document.getElementById('page-17');
+            
+            page16.style.opacity = '0';
+            setTimeout(() => {
+                page17.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    page17.classList.add('active');
+                });
+            }, 1000);
+        });
+
+        document.getElementById('page-17').addEventListener('click', function() {
+            const page17 = document.getElementById('page-17');
+            
+            page17.style.opacity = '0';
+            setTimeout(() => {
+                window.location.href = 'photo.html';
+            }, 1000);
+        });
+
+        // 初始化
+        window.addEventListener('load', initAudio);
+    </script>
+</body>
+</html> 

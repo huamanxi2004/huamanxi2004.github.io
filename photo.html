@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔法面具</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .camera-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 640px;
+            height: 480px;
+            z-index: 1;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 5;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+
+        .start-button {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            font-size: 24px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            border-radius: 10px;
+            cursor: pointer;
+            z-index: 10;
+            transition: background-color 0.3s;
+        }
+
+        .start-button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 聊天面板样式 */
+        .chat-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .chat-panel.active {
+            transform: translateY(0);
+        }
+
+        .chat-header {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-title {
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .chat-close {
+            color: #fff;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            color: #fff;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px 15px 0 15px;
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px 15px 15px 0;
+        }
+
+        .chat-input {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 0 0 10px 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .chat-input button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .chat-input button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .chat-toggle i {
+            color: #fff;
+            font-size: 24px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="camera-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/未标题-6.png" alt="background" class="background">
+        <div class="hint">等待启动...</div>
+    </div>
+    <button class="start-button">点击启动</button>
+
+    <!-- 聊天面板 -->
+    <div class="chat-toggle">
+        <i class="fas fa-comments"></i>
+    </div>
+    <div class="chat-panel">
+        <div class="chat-header">
+            <div class="chat-title">与魅影对话</div>
+            <div class="chat-close"><i class="fas fa-times"></i></div>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input">
+            <input type="text" id="message-input" placeholder="输入消息...">
+            <button id="mic-button"><i class="fas fa-microphone"></i></button>
+            <button id="send-button"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const hint = document.querySelector('.hint');
+        const startButton = document.querySelector('.start-button');
+        let maskImage = new Image();
+        let crownImage = new Image();
+        let filterType = null;
+        let backgroundMusic = new Audio('/Users/pyq/Desktop/UI大作业（测试）/音频素材/all.mp3');
+
+        // 设置画布尺寸
+        canvas.width = 640;
+        canvas.height = 480;
+
+        // 播放背景音乐
+        function playBackgroundMusic() {
+            backgroundMusic.volume = 1;
+            backgroundMusic.loop = true;
+            backgroundMusic.play();
+        }
+
+        // 淡出背景音乐
+        function fadeOutMusic() {
+            let volume = 1;
+            const fadeInterval = setInterval(() => {
+                if (volume > 0) {
+                    volume -= 0.1;
+                    backgroundMusic.volume = volume;
+                } else {
+                    clearInterval(fadeInterval);
+                    backgroundMusic.pause();
+                }
+            }, 100);
+        }
+
+        // 初始化摄像头
+        async function initCamera() {
+            try {
+                hint.textContent = '正在请求访问摄像头...';
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                });
+
+                video.srcObject = stream;
+                await new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        resolve();
+                    };
+                });
+
+                loadDecorations();
+                startButton.classList.add('hidden');
+                playBackgroundMusic();
+                
+            } catch (err) {
+                console.error('摄像头初始化错误:', err);
+                hint.textContent = `错误: ${err.message}. 请确保允许访问摄像头，然后刷新页面重试。`;
+            }
+        }
+
+        // 加载装饰图片
+        function loadDecorations() {
+            maskImage.src = '/Users/pyq/Desktop/UI大作业（测试）/图片素材/魅影面具.jpg';
+            crownImage.src = '/Users/pyq/Desktop/UI大作业（测试）/图片素材/小c.jpg';
+            
+            maskImage.onerror = function() {
+                console.error('面具图片加载失败');
+                hint.textContent = '面具图片加载失败，请检查文件路径';
+            };
+            
+            crownImage.onerror = function() {
+                console.error('王冠图片加载失败');
+                hint.textContent = '王冠图片加载失败，请检查文件路径';
+            };
+            
+            Promise.all([
+                new Promise(resolve => maskImage.onload = resolve),
+                new Promise(resolve => crownImage.onload = resolve)
+            ]).then(() => {
+                filterType = 'mask';
+                console.log('使用面具滤镜');
+                console.log('面具图片尺寸:', maskImage.width, maskImage.height);
+                hint.textContent = '准备就绪！';
+                startDetection();
+            });
+        }
+
+        // 开始检测
+        function startDetection() {
+            detectFace();
+        }
+
+        // 人脸检测
+        async function detectFace() {
+            if (!video.videoWidth) return;
+            
+            try {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = video.videoWidth;
+                tempCanvas.height = video.videoHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(video, 0, 0);
+                
+                const imageData = tempCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+                
+                const formData = new FormData();
+                formData.append('api_key', '3bGbYdHDdsVVxTMwziiWp9d7FikYkMud');
+                formData.append('api_secret', 'oIHiOa5hNQqU7FbRE8DXUgQ1YoQGZTAu');
+                formData.append('image_base64', imageData);
+
+                const response = await fetch('https://api-cn.faceplusplus.com/facepp/v3/detect?return_landmark=1', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.faces && data.faces.length > 0) {
+                    drawFaceDecoration(data.faces[0]);
+                    hint.textContent = '检测到面部';
+                } else {
+                    hint.textContent = '未检测到面部';
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (err) {
+                console.error('人脸检测错误:', err);
+                hint.textContent = '人脸检测出错，正在重试...';
+            }
+
+            setTimeout(detectFace, 1000);
+        }
+
+        // 绘制装饰
+        function drawFaceDecoration(face) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (filterType === 'mask') {
+                // 面具效果：覆盖右半边脸
+                const faceWidth = face.face_rectangle.width;
+                const faceHeight = face.face_rectangle.height;
+                
+                // 调整面具位置到右脸，适中位置
+                const centerX = face.face_rectangle.left + (faceWidth * 0.35);
+                const centerY = face.face_rectangle.top + (faceHeight * 0.2);
+                
+                // 增大面具尺寸
+                const scale = (faceWidth * 1.5) / maskImage.width;
+                
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.scale(scale, scale);
+                ctx.drawImage(maskImage, -maskImage.width / 2, -maskImage.height / 2);
+                ctx.restore();
+            }
+        }
+
+        // 启动按钮点击事件
+        startButton.addEventListener('click', () => {
+            initCamera();
+        });
+
+        // 聊天面板功能
+        const chatToggle = document.querySelector('.chat-toggle');
+        const chatPanel = document.querySelector('.chat-panel');
+        const chatClose = document.querySelector('.chat-close');
+        const messageInput = document.getElementById('message-input');
+        const micButton = document.getElementById('mic-button');
+        const sendButton = document.getElementById('send-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const synth = window.speechSynthesis;
+
+        let recognition;
+        let isRecording = false;
+        let conversationHistory = [];
+
+        // 初始化语音识别
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'zh-CN';
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                messageInput.value = transcript;
+                sendMessage();
+            };
+
+            recognition.onerror = (event) => {
+                console.error('语音识别错误:', event.error);
+            };
+        }
+
+        // 切换聊天面板
+        chatToggle.addEventListener('click', () => {
+            chatPanel.classList.toggle('active');
+        });
+
+        chatClose.addEventListener('click', () => {
+            chatPanel.classList.remove('active');
+        });
+
+        // 发送消息
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // 添加用户消息到界面
+            addMessage(message, 'user');
+            messageInput.value = '';
+
+            try {
+                // 调用本地代理服务器
+                const response = await fetch('http://localhost:3000/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            ...conversationHistory,
+                            { role: 'user', content: message }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.details || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                    throw new Error('Invalid API response format');
+                }
+
+                const aiResponse = data.choices[0].message.content;
+
+                // 添加 AI 回复到界面
+                addMessage(aiResponse, 'ai');
+
+                // 更新对话历史
+                conversationHistory.push(
+                    { role: 'user', content: message },
+                    { role: 'assistant', content: aiResponse }
+                );
+
+                // 语音播报 AI 回复
+                speakMessage(aiResponse);
+
+            } catch (error) {
+                console.error('API 调用错误:', error);
+                let errorMessage = '抱歉，发生了错误，请稍后再试。';
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage = '无法连接到代理服务器，请确保代理服务器正在运行。';
+                } else if (error.message.includes('HTTP error')) {
+                    errorMessage = `服务器返回错误: ${error.message}`;
+                }
+                addMessage(errorMessage, 'ai');
+            }
+        }
+
+        // 添加消息到界面
+        function addMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', `${sender}-message`);
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 语音播报
+        function speakMessage(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            synth.speak(utterance);
+        }
+
+        // 事件监听
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        micButton.addEventListener('click', () => {
+            if (!recognition) {
+                alert('您的浏览器不支持语音识别');
+                return;
+            }
+
+            if (!isRecording) {
+                recognition.start();
+                isRecording = true;
+                micButton.style.color = '#ff0000';
+            } else {
+                recognition.stop();
+                isRecording = false;
+                micButton.style.color = '#fff';
+            }
+        });
+    </script>
+</body>
+</html> 

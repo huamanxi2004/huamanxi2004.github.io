@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蜡烛互动</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #000;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeIn 1s ease-in forwards;
+        }
+
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: none;
+            transition: opacity 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .background::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background: url('/Users/pyq/Desktop/UI大作业（测试）/图片素材/蜡烛.jpg') center center/contain no-repeat;
+            transition: opacity 1s ease, background-image 1s ease;
+        }
+
+        .background.extinguished::before {
+            background-image: url('/Users/pyq/Desktop/UI大作业（测试）/图片素材/蜡烛熄灭.jpg');
+        }
+
+        .background.mirror::before {
+            background-image: url('/Users/pyq/Desktop/UI大作业（测试）/图片素材/镜子.jpg');
+            transition: background-image 1s ease;
+        }
+
+        .background.mirror-clear::before {
+            filter: blur(0);
+        }
+
+        .phantom-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('/Users/pyq/Desktop/UI大作业（测试）/图片素材/镜子魅影.jpg') center center/contain no-repeat;
+            opacity: 0;
+            transition: opacity 1s ease;
+            pointer-events: none;
+        }
+
+        .phantom-overlay.visible {
+            opacity: 1;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0;
+            transition: opacity 2s ease;
+            pointer-events: none;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+            opacity: 0.8;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: opacity 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .darken {
+            filter: brightness(0.2);
+            transition: filter 2s ease;
+        }
+
+        .hidden {
+            opacity: 0 !important;
+        }
+
+        #page-11 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: #000033;
+            z-index: 9999;
+            cursor: pointer;
+            transition: opacity 1s ease-out;
+        }
+
+        #page-11.fade-out {
+            opacity: 0;
+        }
+
+        #page-11.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #page-11 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="overlay"></div>
+    <div class="phantom-overlay"></div>
+    <div class="hint">用力对着麦克风吹气来熄灭蜡烛</div>
+
+    <div id="page-11">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/11页.png" alt="第11页">
+    </div>
+
+    <audio id="bgMusic" preload="auto" loop>
+        <source src="/Users/pyq/Desktop/UI大作业（测试）/音频素材/angel of music.mp3" type="audio/mpeg">
+        <source src="./音频素材/angel of music.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="phantomMusic" preload="auto">
+        <source src="/Users/pyq/Desktop/UI大作业（测试）/音频素材/魅影.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const background = document.querySelector('.background');
+        const overlay = document.querySelector('.overlay');
+        const hint = document.querySelector('.hint');
+        const bgMusic = document.getElementById('bgMusic');
+        const phantomOverlay = document.querySelector('.phantom-overlay');
+        const phantomMusic = document.getElementById('phantomMusic');
+        let isExtinguished = false;
+        let audioContext;
+        let gainNode;
+
+        // 确保音频加载和播放
+        function initAudioPlayback() {
+            bgMusic.volume = 1.0;
+            phantomMusic.volume = 1.0;
+            
+            // 预加载音频
+            phantomMusic.load();
+            bgMusic.load();
+            
+            // 尝试播放背景音乐
+            function attemptPlay() {
+                const playPromise = bgMusic.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log('自动播放失败，等待用户交互');
+                        document.body.addEventListener('click', function playOnClick() {
+                            bgMusic.play().then(() => {
+                                document.body.removeEventListener('click', playOnClick);
+                            }).catch(console.error);
+                        });
+                    });
+                }
+            }
+
+            if (bgMusic.readyState >= 2) {
+                attemptPlay();
+            } else {
+                bgMusic.addEventListener('canplay', attemptPlay);
+            }
+        }
+
+        // 页面加载完成后初始化音频
+        window.addEventListener('load', initAudioPlayback);
+
+        // 确保音频文件正确加载
+        bgMusic.addEventListener('error', (e) => {
+            console.error('音频加载失败:', e);
+            hint.textContent = '音频加载失败，请刷新页面重试';
+        });
+
+        phantomMusic.addEventListener('error', (e) => {
+            console.error('魅影音频加载失败:', e);
+            hint.textContent = '魅影音频加载失败，请检查文件路径';
+        });
+
+        // 初始化音频分析
+        async function initAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { 
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    } 
+                });
+                const audioContext = new AudioContext();
+                const source = audioContext.createMediaStreamSource(stream);
+                const analyser = audioContext.createAnalyser();
+                
+                analyser.fftSize = 2048; // 增加FFT大小以提高频率分辨率
+                source.connect(analyser);
+                
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                let blowCount = 0;
+                const threshold = 120; // 降低阈值到120
+                const requiredConsecutiveBlows = 5; // 需要更多连续检测
+                let consecutiveBlows = 0;
+                
+                function checkBlowing() {
+                    if (isExtinguished) return;
+                    
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    // 分析特定频率范围（吹气声音通常在100-1000Hz之间）
+                    const lowFreqRange = dataArray.slice(0, 50); // 0-1000Hz范围
+                    const midFreqRange = dataArray.slice(50, 200); // 1000-4000Hz范围
+                    
+                    // 计算低频能量
+                    const lowFreqEnergy = lowFreqRange.reduce((a, b) => a + b, 0) / lowFreqRange.length;
+                    // 计算中频能量
+                    const midFreqEnergy = midFreqRange.reduce((a, b) => a + b, 0) / midFreqRange.length;
+                    
+                    // 吹气声音特征：低频能量高，中频能量相对较低
+                    const isBlowing = lowFreqEnergy > threshold && 
+                                    lowFreqEnergy > midFreqEnergy * 1.5; // 确保低频能量明显高于中频
+                    
+                    if (isBlowing) {
+                        consecutiveBlows++;
+                        if (consecutiveBlows >= requiredConsecutiveBlows) {
+                            extinguishCandle();
+                            return;
+                        }
+                    } else {
+                        consecutiveBlows = Math.max(0, consecutiveBlows - 2); // 更快的衰减
+                    }
+                    
+                    requestAnimationFrame(checkBlowing);
+                }
+                
+                checkBlowing();
+                hint.textContent = '用力对着麦克风吹气来熄灭蜡烛';
+            } catch (err) {
+                console.error('无法访问麦克风:', err);
+                hint.textContent = '请允许访问麦克风以体验互动效果';
+            }
+        }
+
+        // 蜡烛熄灭效果
+        function extinguishCandle() {
+            if (isExtinguished) return;
+            isExtinguished = true;
+
+            // 切换到熄灭的蜡烛图片
+            background.classList.add('extinguished');
+            
+            // 淡出效果
+            setTimeout(() => {
+                hint.classList.add('hidden');
+                
+                // 音乐淡出
+                const fadeOut = setInterval(() => {
+                    if (bgMusic.volume > 0.1) {
+                        bgMusic.volume -= 0.1;
+                    } else {
+                        bgMusic.pause();
+                        clearInterval(fadeOut);
+                        // 等待3秒后显示镜子
+                        setTimeout(() => {
+                            showMirrorSequence();
+                        }, 3000);
+                    }
+                }, 100);
+            }, 500);
+        }
+
+        // 镜子和魅影序列
+        function showMirrorSequence() {
+            phantomMusic.currentTime = 0;
+            phantomMusic.volume = 1.0;
+            
+            phantomMusic.play().catch(error => {
+                console.error('音频播放失败:', error);
+                document.body.addEventListener('click', function playOnClick() {
+                    phantomMusic.play().then(() => {
+                        document.body.removeEventListener('click', playOnClick);
+                    }).catch(console.error);
+                });
+            });
+            
+            background.classList.add('mirror');
+            phantomOverlay.classList.add('visible');
+            phantomOverlay.style.pointerEvents = 'auto';
+            
+            phantomOverlay.onclick = function() {
+                // 停止所有音频
+                phantomMusic.pause();
+                phantomMusic.currentTime = 0;
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
+
+                // 隐藏当前页面
+                phantomOverlay.style.display = 'none';
+                background.style.display = 'none';
+                
+                // 显示第11页
+                const page11 = document.getElementById('page-11');
+                page11.classList.add('active');
+            };
+        }
+
+        // 初始化
+        initAudio();
+
+        // 添加触摸支持
+        document.addEventListener('touchstart', () => {
+            if (!bgMusic.playing) {
+                bgMusic.play().catch(console.error);
+            }
+        });
+
+        // 简化第11页点击事件处理
+        document.getElementById('page-11').addEventListener('click', function() {
+            const page11 = document.getElementById('page-11');
+            
+            // 添加淡出效果
+            page11.classList.add('fade-out');
+            
+            // 等待过渡效果完成后跳转
+            setTimeout(() => {
+                window.location.href = 'door.html';
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

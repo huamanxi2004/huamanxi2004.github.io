@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>吊灯互动</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #000;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeIn 1s ease-in forwards;
+            transition: background-color 1s ease;
+        }
+
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('/Users/pyq/Desktop/UI大作业（测试）/图片素材/幕布.png') center center/cover no-repeat fixed;
+            z-index: 1;
+            transition: filter 1s ease;
+        }
+
+        .chandelier-container {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(0);
+            width: 800px;
+            z-index: 2;
+            transform-origin: top center;
+            will-change: transform;
+            transition: transform 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .swinging {
+            animation: swing 3s ease-in-out infinite;
+        }
+
+        .chandelier {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+            transition: filter 1s ease;
+        }
+
+        .cutting-line {
+            position: absolute;
+            top: 20vh;
+            left: 0;
+            width: 3px;
+            height: 60vh;
+            background: linear-gradient(to bottom, transparent, #ff0000, transparent);
+            z-index: 3;
+            display: none;
+            box-shadow: 0 0 8px #ff0000;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+            opacity: 0.8;
+            z-index: 4;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: opacity 0.5s;
+        }
+
+        @keyframes swing {
+            0% { transform: translateX(-50%) rotate(0deg); }
+            25% { transform: translateX(-50%) rotate(2deg); }
+            75% { transform: translateX(-50%) rotate(-2deg); }
+            100% { transform: translateX(-50%) rotate(0deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .falling {
+            animation: fall 2s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards !important;
+        }
+
+        @keyframes fall {
+            0% { transform: translateX(-50%) translateY(0); }
+            100% { transform: translateX(-50%) translateY(60vh); }
+        }
+
+        .darken {
+            filter: brightness(0.2) !important;
+            animation: flicker 0.6s ease-in-out forwards !important;
+        }
+
+        @keyframes flicker {
+            0% { filter: brightness(0.2); }
+            20% { filter: brightness(0.8); }
+            40% { filter: brightness(0.2); }
+            60% { filter: brightness(0.6); }
+            80% { filter: brightness(0.3); }
+            100% { filter: brightness(0.2); }
+        }
+
+        .chandelier-darken {
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) brightness(0.2) !important;
+            animation: chandelierFlicker 0.6s ease-in-out forwards !important;
+        }
+
+        @keyframes chandelierFlicker {
+            0% { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) brightness(0.2); }
+            20% { filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5)) brightness(0.8); }
+            40% { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) brightness(0.2); }
+            60% { filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.4)) brightness(0.6); }
+            80% { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2)) brightness(0.3); }
+            100% { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) brightness(0.2); }
+        }
+
+        .crash-effect {
+            animation: crashShake 0.5s ease-in-out;
+        }
+
+        @keyframes crashShake {
+            0%, 100% { transform: translateX(-50%) translateY(60vh); }
+            25% { transform: translateX(-52%) translateY(60vh) rotate(-5deg); }
+            75% { transform: translateX(-48%) translateY(60vh) rotate(5deg); }
+        }
+
+        .flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            opacity: 0;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        @keyframes flashEffect {
+            0% { opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0; }
+        }
+
+        /* 添加故事页面样式 */
+        .story-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.5s ease-in-out;
+            z-index: 10;
+        }
+
+        .story-page.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .story-page img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加新页面的过渡效果 */
+        .next-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000033;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            z-index: 15;
+        }
+
+        .next-page.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .next-page img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加第5页的样式 */
+        .page-5 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000033;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            z-index: 20;
+        }
+
+        .page-5.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .page-5 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加第6页的样式 */
+        .page-6 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000033;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            z-index: 25;
+        }
+
+        .page-6.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .page-6 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加第7页的样式 */
+        .page-7 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000033;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            z-index: 30;
+        }
+
+        .page-7.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .page-7 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加第8页的样式 */
+        .page-8 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000033;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            z-index: 35;
+        }
+
+        .page-8.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .page-8 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加第9页的样式 */
+        .page-9 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000033;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            z-index: 40;
+        }
+
+        .page-9.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .page-9 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 添加第10页的样式 */
+        .page-10 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000033;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            z-index: 45;
+        }
+
+        .page-10.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .page-10 img {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="chandelier-container swinging">
+        <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/灯白边.jpg" alt="吊灯" class="chandelier">
+    </div>
+    <div class="cutting-line"></div>
+    <div class="hint">左右滑动以切断吊灯绳索</div>
+    <div class="flash"></div>
+
+    <!-- 添加故事页面 -->
+    <div id="story-page-1" class="story-page">
+        <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/3页.png" alt="第3页">
+    </div>
+    <div id="story-page-2" class="story-page">
+        <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/魅影介绍.png" alt="魅影介绍">
+    </div>
+    <div id="story-page-3" class="story-page">
+        <img src="/Users/pyq/Desktop/UI大作业（测试）/图片素材/2页.png" alt="第2页">
+    </div>
+
+    <!-- 添加新的页面容器 -->
+    <div id="next-page" class="next-page">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/4页.png" alt="第4页">
+    </div>
+
+    <!-- 添加第5页容器 -->
+    <div id="page-5" class="page-5">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/5页.png" alt="第5页">
+    </div>
+
+    <!-- 添加第6页容器 -->
+    <div id="page-6" class="page-6">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/6页.png" alt="第6页">
+    </div>
+
+    <!-- 添加第7页容器 -->
+    <div id="page-7" class="page-7">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/7页.png" alt="第7页">
+    </div>
+
+    <!-- 添加第8页容器 -->
+    <div id="page-8" class="page-8">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/8页.png" alt="第8页">
+    </div>
+
+    <!-- 添加第9页容器 -->
+    <div id="page-9" class="page-9">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/9页.png" alt="第9页">
+    </div>
+
+    <!-- 添加第10页容器 -->
+    <div id="page-10" class="page-10">
+        <img src="/Users/pyq/Desktop/UI 大作业/图片素材/10页.png" alt="第10页">
+    </div>
+
+    <audio id="crashSound" preload="auto">
+        <source src="crash.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="bgMusic" preload="auto">
+        <source src="/Users/pyq/Desktop/UI大作业（测试）/音频素材/overture.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let isDragging = false;
+        let startX = 0;
+        let currentX = 0;
+        let currentStoryPage = 0;
+        const chandelierContainer = document.querySelector('.chandelier-container');
+        const chandelier = document.querySelector('.chandelier');
+        const cuttingLine = document.querySelector('.cutting-line');
+        const hint = document.querySelector('.hint');
+        const flash = document.querySelector('.flash');
+        const background = document.querySelector('.background');
+        const crashSound = document.getElementById('crashSound');
+        const bgMusic = document.getElementById('bgMusic');
+        
+        // 初始化故事页面点击事件
+        function initializeStoryPages() {
+            document.getElementById('story-page-1').addEventListener('click', () => {
+                document.getElementById('story-page-1').classList.remove('active');
+                document.getElementById('story-page-2').classList.add('active');
+            });
+
+            document.getElementById('story-page-2').addEventListener('click', () => {
+                document.getElementById('story-page-2').classList.remove('active');
+                document.getElementById('story-page-3').classList.add('active');
+            });
+
+            document.getElementById('story-page-3').addEventListener('click', () => {
+                document.getElementById('story-page-3').classList.remove('active');
+                document.getElementById('next-page').classList.add('active');
+            });
+
+            document.getElementById('next-page').addEventListener('click', () => {
+                document.getElementById('next-page').classList.remove('active');
+                document.getElementById('page-5').classList.add('active');
+            });
+
+            document.getElementById('page-5').addEventListener('click', () => {
+                document.getElementById('page-5').classList.remove('active');
+                document.getElementById('page-6').classList.add('active');
+            });
+
+            document.getElementById('page-6').addEventListener('click', () => {
+                document.getElementById('page-6').classList.remove('active');
+                document.getElementById('page-7').classList.add('active');
+            });
+
+            document.getElementById('page-7').addEventListener('click', () => {
+                document.getElementById('page-7').classList.remove('active');
+                document.getElementById('page-8').classList.add('active');
+            });
+
+            document.getElementById('page-8').addEventListener('click', () => {
+                document.getElementById('page-8').classList.remove('active');
+                document.getElementById('page-9').classList.add('active');
+            });
+
+            document.getElementById('page-9').addEventListener('click', () => {
+                document.getElementById('page-9').classList.remove('active');
+                document.getElementById('page-10').classList.add('active');
+            });
+
+            // 添加第10页到candle.html的跳转事件
+            document.getElementById('page-10').addEventListener('click', () => {
+                // 停止背景音乐
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
+                // 跳转到candle.html
+                window.location.href = './candle.html';
+            });
+        }
+
+        function startDrag(e) {
+            isDragging = true;
+            startX = e.clientX || e.touches[0].clientX;
+            cuttingLine.style.display = 'block';
+            cuttingLine.style.left = startX + 'px';
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            currentX = e.clientX || e.touches[0].clientX;
+            cuttingLine.style.left = currentX + 'px';
+            
+            if (Math.abs(currentX - startX) > 100) {
+                isDragging = false;
+                chandelierContainer.classList.remove('swinging');
+                chandelierContainer.classList.add('falling');
+                background.classList.add('darken');
+                chandelier.classList.add('chandelier-darken');
+                hint.style.opacity = '0';
+                
+                // 播放背景音乐
+                bgMusic.currentTime = 0; // 确保从头开始播放
+                bgMusic.volume = 1.0;
+                const playPromise = bgMusic.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error('背景音乐播放失败:', error);
+                        // 添加点击事件来播放音乐（解决自动播放限制）
+                        const playMusic = () => {
+                            bgMusic.play();
+                            document.removeEventListener('click', playMusic);
+                        };
+                        document.addEventListener('click', playMusic);
+                    });
+                }
+                
+                // 播放坠落音效
+                crashSound.play().catch(error => {
+                    console.error('音效播放失败:', error);
+                });
+                
+                setTimeout(() => {
+                    chandelierContainer.classList.add('crash-effect');
+                    flash.style.animation = 'flashEffect 0.5s ease-out';
+                    setTimeout(() => {
+                        // 显示第一个故事页面
+                        document.getElementById('story-page-1').classList.add('active');
+                    }, 1000);
+                }, 2000);
+            }
+        }
+
+        function endDrag() {
+            isDragging = false;
+            cuttingLine.style.display = 'none';
+        }
+
+        function handleTouchStart(e) {
+            startDrag(e.touches[0]);
+        }
+
+        function handleTouchMove(e) {
+            drag(e.touches[0]);
+        }
+
+        function handleTouchEnd() {
+            endDrag();
+        }
+
+        // 触摸和鼠标事件处理
+        document.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchstart', handleTouchStart);
+        document.addEventListener('touchmove', handleTouchMove);
+        document.addEventListener('touchend', handleTouchEnd);
+
+        // 初始化故事页面
+        initializeStoryPages();
+    </script>
+</body>
+</html> 
